@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run bounded production HTTP journeys against an isolated ephemeral service."""
-import argparse, concurrent.futures, copy, hashlib, json, os, pathlib, signal, socket, struct, subprocess, tempfile, time, urllib.error, urllib.request
+import argparse, concurrent.futures, copy, hashlib, json, os, pathlib, signal, socket, struct, subprocess, sys, tempfile, time, urllib.error, urllib.request
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--workflow',required=True);args=parser.parse_args()
@@ -78,6 +78,12 @@ def main():
                     stop();os.rename(base/'state',base/'original');start();imported=call('POST','/v1/bundles',sealed,status=201);assert imported['revisions'][0]['digest']==a['scene_digest'];assert render()['digest']==a['digest']
                 else:
                     stop();start();assert call('GET','/v1/artifacts/'+a['id'],raw=True)[0][:8]==b'\x89PNG\r\n\x1a\n';assert render()['digest']==a['digest']
+            elif w=='radial':
+                # The numeric cross-check (different radial root derivation, a
+                # self-contained PNG decoder, restart and bundle round-trip)
+                # lives in its own script with a dedicated ephemeral root.
+                rc=subprocess.run([sys.executable,str(ROOT/'scripts/radial-check.py')],cwd=ROOT)
+                if rc.returncode!=0:raise RuntimeError('radial cross-check failed')
             elif w=='isolation':
                 lockproc=subprocess.run([str(binary),'-listen','127.0.0.1:0','-data',str(base/'state')],capture_output=True,timeout=3);assert lockproc.returncode!=0;assert b'locked' in lockproc.stderr
                 call('POST','/v1/plates',b'{"id":"x"} true',status=400)

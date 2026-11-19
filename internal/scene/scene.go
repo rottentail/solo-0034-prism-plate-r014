@@ -18,7 +18,15 @@ type Brush struct {
 	Color Color      `json:"color"`
 	From  geom.Point `json:"from"`
 	To    geom.Point `json:"to"`
-	Stops []Stop     `json:"stops,omitempty"`
+	// Radial brushes live in shape-local coordinates like every other brush.
+	// Center/Radius define an axis-aligned ellipse; Focus is the offset of the
+	// focal highlight from the center in the same local units. Shape transforms
+	// (including non-uniform scale and shear) carry the ellipse for free.
+	Center  geom.Point `json:"center,omitempty"`
+	RadiusX float64    `json:"radius_x,omitempty"`
+	RadiusY float64    `json:"radius_y,omitempty"`
+	Focus   geom.Point `json:"focus,omitempty"`
+	Stops   []Stop     `json:"stops,omitempty"`
 }
 type Shape struct {
 	ID        string      `json:"id"`

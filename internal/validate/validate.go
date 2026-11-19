@@ -56,6 +56,22 @@ func path(ops []geom.Op) (geom.Path, error) {
 	}
 	return geom.Flatten(ops), nil
 }
+func gradientStops(stops []scene.Stop) error {
+	if len(stops) < 2 || len(stops) > 16 {
+		return fmt.Errorf("gradient requires 2..16 stops")
+	}
+	prev := -1.0
+	for _, s := range stops {
+		if !Unit(s.At) || s.At <= prev || !Color(s.Color) {
+			return fmt.Errorf("invalid gradient stops")
+		}
+		prev = s.At
+	}
+	if stops[0].At != 0 || prev != 1 {
+		return fmt.Errorf("gradient endpoints must be 0 and 1")
+	}
+	return nil
+}
 func brush(b scene.Brush) error {
 	if b.Kind == "solid" {
 		if !Color(b.Color) {
@@ -63,29 +79,39 @@ func brush(b scene.Brush) error {
 		}
 		return nil
 	}
-	if b.Kind != "linear" {
+	if b.Kind != "linear" && b.Kind != "radial" {
 		return fmt.Errorf("unknown brush")
 	}
-	for _, v := range []float64{b.From.X, b.From.Y, b.To.X, b.To.Y} {
+	if e := gradientStops(b.Stops); e != nil {
+		return e
+	}
+	if b.Kind == "linear" {
+		for _, v := range []float64{b.From.X, b.From.Y, b.To.X, b.To.Y} {
+			if !finite(v) {
+				return fmt.Errorf("invalid gradient axis")
+			}
+		}
+		if math.Hypot(b.To.X-b.From.X, b.To.Y-b.From.Y) < 1e-6 {
+			return fmt.Errorf("degenerate gradient axis")
+		}
+		return nil
+	}
+	// Radial geometry. Every parameter is finite and in a bounded range so the
+	// normalized ray equation cannot overflow or divide by a vanishing term.
+	for _, v := range []float64{b.Center.X, b.Center.Y, b.Focus.X, b.Focus.Y, b.RadiusX, b.RadiusY} {
 		if !finite(v) {
-			return fmt.Errorf("invalid gradient axis")
+			return fmt.Errorf("invalid radial geometry")
 		}
 	}
-	if math.Hypot(b.To.X-b.From.X, b.To.Y-b.From.Y) < 1e-6 {
-		return fmt.Errorf("degenerate gradient axis")
+	if b.RadiusX < 1e-6 || b.RadiusY < 1e-6 {
+		return fmt.Errorf("degenerate radial ellipse: both radii must be at least 1e-6")
 	}
-	if len(b.Stops) < 2 || len(b.Stops) > 16 {
-		return fmt.Errorf("gradient requires 2..16 stops")
-	}
-	prev := -1.0
-	for _, s := range b.Stops {
-		if !Unit(s.At) || s.At <= prev || !Color(s.Color) {
-			return fmt.Errorf("invalid gradient stops")
-		}
-		prev = s.At
-	}
-	if b.Stops[0].At != 0 || prev != 1 {
-		return fmt.Errorf("gradient endpoints must be 0 and 1")
+	fn2 := (b.Focus.X/b.RadiusX)*(b.Focus.X/b.RadiusX) + (b.Focus.Y/b.RadiusY)*(b.Focus.Y/b.RadiusY)
+	// A focus on or beyond the ending ellipse leaves no finite ray endpoint, and
+	// one arbitrarily close makes 1-|f|^2 ill-conditioned. Reject both; the
+	// designer keeps full control inside the ellipse, including its center.
+	if fn2 >= 1-1e-6 {
+		return fmt.Errorf("radial focus must stay strictly inside the ellipse (normalized distance squared below 1-1e-6)")
 	}
 	return nil
 }

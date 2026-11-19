@@ -49,6 +49,19 @@ func Export(c scene.Compiled) []byte {
 					fmt.Fprintf(&b, `<stop offset="%s" stop-color="%s" stop-opacity="%s"/>`, number(stop.At), color(stop.Color), number(stop.Color.A))
 				}
 				b.WriteString(`</linearGradient>`)
+			} else if br.Kind == "radial" {
+				// Unit-circle gradient in shape-local user space, mapped onto the
+				// authored ellipse by the affine gradientTransform. The focal point
+				// is expressed in normalized (pre-transform) coordinates, matching
+				// the ray parameter used by the canonical PNG renderer. The path's
+				// own transform carries ellipse, focus and contour together.
+				fx := br.Focus.X / br.RadiusX
+				fy := br.Focus.Y / br.RadiusY
+				fmt.Fprintf(&b, `<radialGradient id="b%d_%d" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" fx="%s" fy="%s" gradientTransform="matrix(%s 0 0 %s %s %s)">`, i, j, number(fx), number(fy), number(br.RadiusX), number(br.RadiusY), number(br.Center.X), number(br.Center.Y))
+				for _, stop := range br.Stops {
+					fmt.Fprintf(&b, `<stop offset="%s" stop-color="%s" stop-opacity="%s"/>`, number(stop.At), color(stop.Color), number(stop.Color.A))
+				}
+				b.WriteString(`</radialGradient>`)
 			}
 		}
 	}
@@ -69,7 +82,7 @@ func Export(c scene.Compiled) []byte {
 			br := s.Shape.Brush
 			fill := color(br.Color)
 			alpha := br.Color.A
-			if br.Kind == "linear" {
+			if br.Kind == "linear" || br.Kind == "radial" {
 				fill = fmt.Sprintf("url(#b%d_%d)", i, j)
 				alpha = 1
 			}

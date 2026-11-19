@@ -20,7 +20,11 @@ curl -X POST 'http://127.0.0.1:7846/v1/plates/amber-plate/render?revision=1&form
 
 ## 场景约定
 
-examples/amber-proof.json 提供曲线、线性渐变、仿射变换、镂空、裁域、二值蒙版和 screen 叠色。坐标原点在左上，颜色为 0..1 的 sRGB 直通色值，PNG 在内部转换为线性光预乘透明度。M/L/Q/C/Z 路径必须显式闭合，轮廓至少三条端点指令；Q/C 分别固定细分16/24段。图层可选 normal/multiply/screen，组透明度在整层合成后施加，蒙版与裁域处于版面坐标，笔刷与填充轮廓处于形状局部坐标。未提供的数值使用 JSON 的零值；形状必须明确传入可逆 transform。
+examples/amber-proof.json 提供曲线、线性渐变、仿射变换、镂空、裁域、二值蒙版和 screen 叠色；examples/radial-spot.json 提供椭圆径向渐变、偏心高光、透明外阶与非均匀拉伸。坐标原点在左上，颜色为 0..1 的 sRGB 直通色值，PNG 在内部转换为线性光预乘透明度。M/L/Q/C/Z 路径必须显式闭合，轮廓至少三条端点指令；Q/C 分别固定细分16/24段。图层可选 normal/multiply/screen，组透明度在整层合成后施加，蒙版与裁域处于版面坐标，笔刷与填充轮廓处于形状局部坐标。未提供的数值使用 JSON 的零值；形状必须明确传入可逆 transform。
+
+笔刷分 solid、linear、radial 三种。linear 用 from/to 定义轴，t 为点在轴上的投影并钳制到 0..1。radial 在形状局部坐标内用 center、radius_x、radius_y 定义轴对齐椭圆，用 focus 给出相对椭圆中心的焦点偏移；形状的仿射变换（含非均匀缩放、剪切）同时携带椭圆、焦点与轮廓，因此拉伸后的颜色位置仍可解释。归一化后末端椭圆成为单位圆，采样点沿“焦点→采样点”射线取值，焦点为 t=0，射线与单位圆交点为 t=1，圆外点 t>1 并与线性渐变一样钳到末阶；焦点位于圆心时退化为到圆心的距离。SVG 以单位圆 radialGradient 加 gradientTransform 表达同一几何，fx/fy 为归一化焦点。
+
+径向几何的退化边界由准入统一拒绝，PNG、SVG、重启恢复与封包导入走同一编译入口：任一坐标非有限、radius_x 或 radius_y 小于 1e-6 拒绝；焦点必须严格位于椭圆内部，归一化距离平方（focus.x²/radius_x² + focus.y²/radius_y²）达到或超过 1−1e-6 拒绝——焦点落在椭圆上会让射线没有有限端点，贴近边界则使分母病态。焦点恰在椭圆中心是合法且稳定的特例。透明色阶不会产生暗环：插值在预乘线性光空间进行，末阶 alpha=0 时圆外样本对背景零贡献，RGB 保持背景不变。设计者可通过修订直接编辑 center/radii/focus/stops，旧稿本与其成品保持不可变。
 
 PNG 是像素校样的权威结果：每像素四点覆盖采样，画布最大512×512。SVG 是复用展开几何的矢量校样；浏览器在覆盖率与透明渐变插值方面可能产生差异，不承诺逐像素相同。所有数值和引用均由服务生成，SVG不接受任意标记、脚本或外链。
 
@@ -39,7 +43,7 @@ python3 scripts/walkthrough.py --workflow png
 python3 scripts/walkthrough.py --workflow bundle
 ```
 
-可选workflow值：create、revise、branch、archive、png、svg、exposure、cancel、artifact、proof、bundle、restore、isolation、rejection。每个流程在临时数据根启动实际HTTP服务，完成后正常关停，不占用长期端口、不修改演示输入。
+可选workflow值：create、revise、branch、archive、png、svg、radial、exposure、cancel、artifact、proof、bundle、restore、isolation、rejection。每个流程在临时数据根启动实际HTTP服务，完成后正常关停，不占用长期端口、不修改演示输入。radial 流程由 scripts/radial-check.py 驱动，用与服务不同的二次求根推导和自带 PNG 解码器做像素级数值对照，并覆盖暗环、拉伸、修订编辑、重启恢复与封包往返。
 
 ## 持久化与范围
 

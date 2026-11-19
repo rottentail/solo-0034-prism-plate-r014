@@ -1,0 +1,98 @@
+{
+  "id": "radial-spot",
+  "title": "椭圆光斑与偏心高光校样",
+  "document": {
+    "width": 160,
+    "height": 120,
+    "background": {
+      "r": 0.05,
+      "g": 0.07,
+      "b": 0.11,
+      "a": 1
+    },
+    "layers": [
+      {
+        "id": "spot-sheet",
+        "opacity": 1,
+        "blend": "normal",
+        "shapes": [
+          {
+            "id": "soft-glow",
+            "fill_rule": "nonzero",
+            "path": [
+              { "kind": "M", "points": [{ "x": 0, "y": 0 }] },
+              { "kind": "L", "points": [{ "x": 160, "y": 0 }] },
+              { "kind": "L", "points": [{ "x": 160, "y": 120 }] },
+              { "kind": "L", "points": [{ "x": 0, "y": 120 }] },
+              { "kind": "Z" }
+            ],
+            "transform": [1, 0, 0, 1, 0, 0],
+            "brush": {
+              "kind": "radial",
+              "center": { "x": 88, "y": 66 },
+              "radius_x": 68,
+              "radius_y": 46,
+              "focus": { "x": 26, "y": -16 },
+              "color": { "r": 0, "g": 0, "b": 0, "a": 0 },
+              "stops": [
+                {
+                  "at": 0,
+                  "color": { "r": 1, "g": 0.92, "b": 0.72, "a": 0.95 }
+                },
+                {
+                  "at": 0.45,
+                  "color": { "r": 0.95, "g": 0.42, "b": 0.16, "a": 0.55 }
+                },
+                {
+                  "at": 1,
+                  "color": { "r": 0.95, "g": 0.42, "b": 0.16, "a": 0 }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "stretch-sheet",
+        "opacity": 0.9,
+        "blend": "screen",
+        "shapes": [
+          {
+            "id": "stretched-orb",
+            "fill_rule": "nonzero",
+            "path": [
+              { "kind": "M", "points": [{ "x": -50, "y": -20 }] },
+              { "kind": "L", "points": [{ "x": 50, "y": -20 }] },
+              { "kind": "L", "points": [{ "x": 50, "y": 20 }] },
+              { "kind": "L", "points": [{ "x": -50, "y": 20 }] },
+              { "kind": "Z" }
+            ],
+            "transform": [1.4, 0.12, -0.1, 0.8, 48, 92],
+            "brush": {
+              "kind": "radial",
+              "center": { "x": 0, "y": 0 },
+              "radius_x": 50,
+              "radius_y": 20,
+              "focus": { "x": -28, "y": 6 },
+              "color": { "r": 0, "g": 0, "b": 0, "a": 0 },
+              "stops": [
+                {
+                  "at": 0,
+                  "color": { "r": 0.62, "g": 0.86, "b": 1, "a": 0.9 }
+                },
+                {
+                  "at": 0.6,
+                  "color": { "r": 0.12, "g": 0.34, "b": 0.78, "a": 0.4 }
+                },
+                {
+                  "at": 1,
+                  "color": { "r": 0.12, "g": 0.34, "b": 0.78, "a": 0 }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
